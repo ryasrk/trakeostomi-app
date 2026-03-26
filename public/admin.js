@@ -1,6 +1,13 @@
 (() => {
     document.getElementById('logoutBtn').addEventListener('click', () => {
-        fetch('/api/logout', { method: 'POST' }).finally(() => {
+        const csrfToken = (() => {
+            try { return window.sessionStorage.getItem('csrfToken') || window.localStorage.getItem('csrfToken') || ''; } catch { return ''; }
+        })();
+
+        fetch('/api/logout', {
+            method: 'POST',
+            headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
+        }).finally(() => {
             window.location.href = '/login.html';
         });
     });
@@ -25,62 +32,9 @@
         window.closeImageModal?.();
     });
 
-    function showToast(text, type) {
-        const toast = document.getElementById('toast');
-        toast.textContent = text;
-        toast.classList.remove('success', 'error', 'hidden');
-        if (type) toast.classList.add(type);
-        setTimeout(() => toast.classList.add('hidden'), 3500);
-    }
-
-    function confirmUi(title, text) {
-        const dialog = document.getElementById('confirmDialog');
-        const titleEl = document.getElementById('confirmTitle');
-        const textEl = document.getElementById('confirmText');
-        const ok = document.getElementById('confirmOk');
-        const cancel = document.getElementById('confirmCancel');
-
-        titleEl.textContent = title;
-        textEl.textContent = text;
-        dialog.classList.add('active');
-        dialog.setAttribute('aria-hidden', 'false');
-        setTimeout(() => cancel.focus(), 0);
-
-        return new Promise((resolve) => {
-            const cleanup = () => {
-                ok.removeEventListener('click', onOk);
-                cancel.removeEventListener('click', onCancel);
-                dialog.removeEventListener('click', onBackdrop);
-                document.removeEventListener('keydown', onKeydown);
-                dialog.classList.remove('active');
-                dialog.setAttribute('aria-hidden', 'true');
-            };
-
-            const onOk = () => {
-                cleanup();
-                resolve(true);
-            };
-            const onCancel = () => {
-                cleanup();
-                resolve(false);
-            };
-            const onBackdrop = (e) => {
-                if (e.target === dialog) onCancel();
-            };
-            const onKeydown = (e) => {
-                if (e.key === 'Escape') onCancel();
-            };
-
-            ok.addEventListener('click', onOk);
-            cancel.addEventListener('click', onCancel);
-            dialog.addEventListener('click', onBackdrop);
-            document.addEventListener('keydown', onKeydown);
-        });
-    }
-
-    // Expose helpers expected by existing code
-    window.showToast = showToast;
-    window.confirmUi = confirmUi;
+    // Backwards compat for existing code
+    window.showToast = (text, type) => window.UI?.showToast?.(text, type);
+    window.confirmUi = (title, text) => window.UI?.confirmUi?.(title, text);
 
     // Keep the rest of the original inline admin logic working by leaving it in admin.html for now.
 })();

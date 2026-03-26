@@ -1,7 +1,23 @@
 (() => {
+    const UI = window.UI || {
+        showToast: (text) => {
+            try { window.alert(text); } catch {}
+        },
+        setButtonLoading: (btn, isLoading, opts) => {
+            if (!btn) return;
+            btn.disabled = Boolean(isLoading);
+            if (!isLoading && opts?.htmlIdle != null) btn.innerHTML = opts.htmlIdle;
+            if (isLoading && opts?.htmlLoading != null) btn.innerHTML = opts.htmlLoading;
+        },
+        readResponseBodySafe: async (response) => {
+            try { return await response.json(); } catch { return {}; }
+        },
+    };
+
     const form = document.getElementById('loginForm');
     const usernameEl = document.getElementById('username');
     const passwordEl = document.getElementById('password');
+    const submitBtn = form.querySelector('button[type="submit"]');
 
     // Autofill from querystring if present (and then clean URL)
     const params = new URLSearchParams(window.location.search);
@@ -22,9 +38,13 @@
         const password = passwordEl.value || '';
 
         if (!username || !password) {
-            showToast('Username dan password wajib diisi.', 'error');
+            UI.showToast('Username dan password wajib diisi.', 'error');
             return;
         }
+
+        UI.setButtonLoading(submitBtn, true, {
+            htmlLoading: '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...'
+        });
 
         try {
             const res = await fetch('/api/login', {
@@ -33,26 +53,27 @@
                 body: JSON.stringify({ username, password }),
             });
 
-            const contentType = res.headers.get('content-type') || '';
-            const data = contentType.includes('application/json') ? await res.json().catch(() => ({})) : {};
+            const data = await UI.readResponseBodySafe(res);
 
             if (res.ok) {
+                try {
+                    if (data?.csrfToken) {
+                        window.sessionStorage.setItem('csrfToken', String(data.csrfToken));
+                        window.localStorage.setItem('csrfToken', String(data.csrfToken));
+                    }
+                } catch {}
                 window.location.href = '/admin.html';
                 return;
             }
 
-            showToast(data.error || 'Login gagal.', 'error');
+            UI.showToast(data?.error || 'Login gagal.', 'error');
         } catch (err) {
             console.error(err);
-            showToast('Gagal terhubung ke server.', 'error');
+            UI.showToast('Gagal terhubung ke server.', 'error');
+        } finally {
+            UI.setButtonLoading(submitBtn, false, {
+                htmlIdle: '<i class="fa-solid fa-right-to-bracket"></i> Login Masuk'
+            });
         }
     });
-
-    function showToast(text, type) {
-        const toast = document.getElementById('toast');
-        toast.textContent = text;
-        toast.classList.remove('success', 'error', 'hidden');
-        if (type) toast.classList.add(type);
-        setTimeout(() => toast.classList.add('hidden'), 3500);
-    }
 })();

@@ -1,4 +1,24 @@
 (() => {
+    const UI = window.UI || {
+        showToast: (text) => {
+            // Minimal fallback; keep UX functional even if ui.js fails
+            try { window.alert(text); } catch {}
+        },
+        setButtonLoading: (btn, isLoading, opts) => {
+            if (!btn) return;
+            btn.disabled = Boolean(isLoading);
+            if (!isLoading && opts?.htmlIdle != null) btn.innerHTML = opts.htmlIdle;
+            if (isLoading && opts?.htmlLoading != null) btn.innerHTML = opts.htmlLoading;
+        },
+        readResponseBodySafe: async (response) => {
+            try { return await response.json(); } catch { return { error: 'Response JSON tidak valid.' }; }
+        },
+        askTextDialog: async () => {
+            const v = (window.prompt('Nama pengirim:') || '').trim();
+            return v || null;
+        },
+    };
+
     const form = document.getElementById('trakeostomiForm');
     const submitBtn = document.getElementById('submitBtn');
     const fileInput = document.getElementById('tindakan_gambar');
@@ -32,20 +52,20 @@
         const files = Array.from(fileInput.files || []);
 
         if (files.length > MAX_FILES) {
-            showToast(`Maksimal ${MAX_FILES} gambar.`, 'error');
+            UI.showToast(`Maksimal ${MAX_FILES} gambar.`, 'error');
             fileInput.value = '';
             return;
         }
 
         for (const file of files) {
             if (!ALLOWED.has(file.type)) {
-                showToast('Ada file dengan tipe tidak didukung (JPG/PNG/WEBP saja).', 'error');
+                UI.showToast('Ada file dengan tipe tidak didukung (JPG/PNG/WEBP saja).', 'error');
                 fileInput.value = '';
                 while (preview.firstChild) preview.removeChild(preview.firstChild);
                 return;
             }
             if (file.size > MAX_SIZE) {
-                showToast('Ada file melebihi 5MB.', 'error');
+                UI.showToast('Ada file melebihi 5MB.', 'error');
                 fileInput.value = '';
                 while (preview.firstChild) preview.removeChild(preview.firstChild);
                 return;
@@ -75,30 +95,42 @@
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const senderName = await askSenderName();
+        const senderName = await UI.askTextDialog({
+            dialogId: 'senderDialog',
+            inputId: 'senderNameInput',
+            okId: 'senderOk',
+            cancelId: 'senderCancel',
+            fallbackPrompt: 'Nama pengirim:',
+            emptyError: 'Nama pengirim wajib diisi.',
+            maxLength: 60,
+            tooLongError: 'Nama pengirim terlalu panjang (maks 60 karakter).',
+        });
         if (!senderName) {
-            showToast('Nama pengirim wajib diisi sebelum menyimpan.', 'error');
+            UI.showToast('Nama pengirim wajib diisi sebelum menyimpan.', 'error');
             return;
         }
 
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+        UI.setButtonLoading(submitBtn, true, {
+            htmlLoading: '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...'
+        });
 
         const formData = new FormData(form);
         formData.append('nama_pengirim', senderName);
 
         const selectedFiles = Array.from(fileInput.files || []);
         if (selectedFiles.length > MAX_FILES) {
-            showToast(`Maksimal ${MAX_FILES} gambar.`, 'error');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan';
+            UI.showToast(`Maksimal ${MAX_FILES} gambar.`, 'error');
+            UI.setButtonLoading(submitBtn, false, {
+                htmlIdle: '<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan'
+            });
             return;
         }
         for (const f of selectedFiles) {
             if (!ALLOWED.has(f.type) || f.size > MAX_SIZE) {
-                showToast('Validasi gambar gagal. Periksa tipe/ukuran file.', 'error');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan';
+                UI.showToast('Validasi gambar gagal. Periksa tipe/ukuran file.', 'error');
+                UI.setButtonLoading(submitBtn, false, {
+                    htmlIdle: '<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan'
+                });
                 return;
             }
         }
@@ -109,98 +141,22 @@
                 body: formData,
             });
 
-            const result = await readResponseBodySafe(response);
+            const result = await UI.readResponseBodySafe(response);
 
             if (response.ok) {
-                showToast('Laporan berhasil disimpan!', 'success');
+                UI.showToast('Laporan berhasil disimpan!', 'success');
                 form.reset();
                 while (preview.firstChild) preview.removeChild(preview.firstChild);
             } else {
-                showToast(result.error || 'Terjadi kesalahan saat menyimpan data.', 'error');
+                UI.showToast(result?.error || 'Terjadi kesalahan saat menyimpan data.', 'error');
             }
         } catch (error) {
             console.error('Error:', error);
-            showToast('Gagal terhubung ke server.', 'error');
+            UI.showToast('Gagal terhubung ke server.', 'error');
         } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan';
+            UI.setButtonLoading(submitBtn, false, {
+                htmlIdle: '<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan'
+            });
         }
     });
-
-    async function readResponseBodySafe(response) {
-        const contentType = response.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-            try {
-                return await response.json();
-            } catch {
-                // fall back
-            }
-        }
-
-        try {
-            const text = await response.text();
-            return { error: text || 'Response JSON tidak valid.' };
-        } catch {
-            return { error: 'Response JSON tidak valid.' };
-        }
-    }
-
-    function showToast(text, type) {
-        const toast = document.getElementById('toast');
-        toast.textContent = text;
-        toast.classList.remove('success', 'error', 'hidden');
-        if (type) toast.classList.add(type);
-        setTimeout(() => toast.classList.add('hidden'), 3500);
-    }
-
-    function askSenderName() {
-        const dialog = document.getElementById('senderDialog');
-        const input = document.getElementById('senderNameInput');
-        const ok = document.getElementById('senderOk');
-        const cancel = document.getElementById('senderCancel');
-
-        dialog.classList.add('active');
-        input.value = '';
-        setTimeout(() => input.focus(), 0);
-
-        return new Promise((resolve) => {
-            const cleanup = () => {
-                ok.removeEventListener('click', onOk);
-                cancel.removeEventListener('click', onCancel);
-                dialog.removeEventListener('click', onBackdrop);
-                document.removeEventListener('keydown', onKeydown);
-                dialog.classList.remove('active');
-            };
-
-            const onOk = () => {
-                const v = (input.value || '').trim();
-                if (!v) {
-                    showToast('Nama pengirim wajib diisi.', 'error');
-                    input.focus();
-                    return;
-                }
-                cleanup();
-                resolve(v);
-            };
-
-            const onCancel = () => {
-                cleanup();
-                resolve(null);
-            };
-
-            const onBackdrop = (e) => {
-                if (e.target === dialog) onCancel();
-            };
-
-            const onKeydown = (e) => {
-                if (e.key === 'Escape') onCancel();
-                if (e.key === 'Enter') onOk();
-            };
-
-            ok.addEventListener('click', onOk);
-            cancel.addEventListener('click', onCancel);
-            dialog.addEventListener('click', onBackdrop);
-            document.addEventListener('keydown', onKeydown);
-        });
-    }
 })();

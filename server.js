@@ -17,6 +17,7 @@ const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev_only_change_me_change_me_change_me_32chars';
+const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 
 if (!process.env.ADMIN_PASS) {
     console.warn('[SECURITY] ADMIN_PASS belum di-set. Menggunakan default dev password.');
@@ -65,7 +66,9 @@ const upload = multer({
 
 app.use(bodyParser.json());
 
-app.set('trust proxy', 1);
+if (TRUST_PROXY) {
+    app.set('trust proxy', 1);
+}
 
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'same-site' },
@@ -103,10 +106,25 @@ app.use(session({
     cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        secure: 'auto',
         maxAge: 8 * 60 * 60 * 1000
     }
 }));
+
+const createCsrfToken = () => crypto.randomBytes(24).toString('hex');
+
+const requireCsrf = (req, res, next) => {
+    if (!req.session || req.session.isAdmin !== true) {
+        return res.status(401).json({ error: 'Akses ditolak.' });
+    }
+
+    const headerToken = String(req.get('x-csrf-token') || '').trim();
+    const sessionToken = String(req.session.csrfToken || '').trim();
+    if (!headerToken || !sessionToken || headerToken !== sessionToken) {
+        return res.status(403).json({ error: 'CSRF token tidak valid.' });
+    }
+    return next();
+};
 
 // Serve static assets, but do NOT serve uploads directly (those are patient-linked)
 app.use(express.static('public', {
@@ -121,13 +139,14 @@ app.post('/api/login', loginLimiter, (req, res) => {
     const { username, password } = req.body;
     if (username === ADMIN_USER && password === ADMIN_PASS) {
         req.session.isAdmin = true;
-        res.json({ success: true });
+        req.session.csrfToken = createCsrfToken();
+        res.json({ success: true, csrfToken: req.session.csrfToken });
     } else {
         res.status(401).json({ success: false, error: 'Username atau password salah!' });
     }
 });
 
-app.post('/api/logout', (req, res) => {
+app.post('/api/logout', requireCsrf, (req, res) => {
     req.session.destroy(() => {
         res.clearCookie('trakeo.sid');
         res.json({ success: true });
@@ -162,97 +181,129 @@ if (!fs.existsSync(DATA_FILE)) {
     fs.writeFileSync(DATA_FILE, JSON.stringify([]));
 }
 
+const readReports = () => {
+    try {
+        const raw = fs.readFileSync(DATA_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeReports = (reports) => {
+    const tmpPath = DATA_FILE + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(reports, null, 2));
+    fs.renameSync(tmpPath, DATA_FILE);
+};
+
+const normalizeTextField = (value, { maxLen }) => {
+    const v = String(value ?? '').trim();
+    if (!v) return null;
+    if (maxLen && v.length > maxLen) return null;
+    return v;
+};
+
 // Mendapatkan semua laporan (Admin Only - contains sensitive patient data)
 app.get('/api/reports', requireAdmin, (req, res) => {
-    fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-        if (err) {
-            return res.status(500).json({ error: 'Gagal membaca data.' });
-        }
-        res.json(JSON.parse(data));
-    });
+    try {
+        return res.json(readReports());
+    } catch {
+        return res.status(500).json({ error: 'Gagal membaca data.' });
+    }
 });
 
 // Menyimpan laporan baru (Public: Form tanpa login)
 app.post('/api/reports', upload.array('tindakan_gambar', 10), (req, res) => {
     const newReport = req.body;
-    
-    if (!newReport.pasien || !newReport.asisten_perawat || !newReport.nomor_alat || 
-        !newReport.pemakaian_alat || !newReport.diagnosa || !newReport.nomor_reka_medik) {
+
+    const pasien = normalizeTextField(newReport.pasien, { maxLen: 120 });
+    const asistenPerawat = normalizeTextField(newReport.asisten_perawat, { maxLen: 120 });
+    const nomorAlat = normalizeTextField(newReport.nomor_alat, { maxLen: 60 });
+    const pemakaianAlat = normalizeTextField(newReport.pemakaian_alat, { maxLen: 120 });
+    const diagnosa = normalizeTextField(newReport.diagnosa, { maxLen: 160 });
+    const nomorRekamMedik = normalizeTextField(newReport.nomor_reka_medik, { maxLen: 60 });
+
+    if (!pasien || !asistenPerawat || !nomorAlat || !pemakaianAlat || !diagnosa || !nomorRekamMedik) {
         return res.status(400).json({ error: 'Semua field utama harus diisi.' });
     }
 
-    const senderName = String(newReport.nama_pengirim || '').trim();
+    const senderName = normalizeTextField(newReport.nama_pengirim, { maxLen: 60 });
     if (!senderName) {
         return res.status(400).json({ error: 'Nama pengirim wajib diisi.' });
     }
-    if (senderName.length > 60) {
-        return res.status(400).json({ error: 'Nama pengirim terlalu panjang (maks 60 karakter).' });
-    }
 
-    newReport.nama_pengirim = senderName;
+    const reportToSave = {
+        pasien,
+        asisten_perawat: asistenPerawat,
+        nomor_alat: nomorAlat,
+        pemakaian_alat: pemakaianAlat,
+        diagnosa,
+        nomor_reka_medik: nomorRekamMedik,
+        nama_pengirim: senderName,
+    };
 
-    newReport.id = Date.now().toString();
-    newReport.tanggal_input = new Date().toISOString();
+    reportToSave.id = Date.now().toString();
+    reportToSave.tanggal_input = new Date().toISOString();
     
     // Menyimpan path gambar
-    newReport.tindakan_gambar = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
+    reportToSave.tindakan_gambar = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
 
-    fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-        if (err) return res.status(500).json({ error: 'Gagal membaca data.' });
-        
-        let reports = [];
-        try { reports = JSON.parse(data); } catch(e) {}
-        reports.push(newReport);
-
-        fs.writeFile(DATA_FILE, JSON.stringify(reports, null, 2), (err) => {
-            if (err) return res.status(500).json({ error: 'Gagal menyimpan data.' });
-            res.status(201).json({ message: 'Laporan berhasil disimpan.', report: newReport });
-        });
-    });
+    try {
+        const reports = readReports();
+        const nextReports = [...reports, reportToSave];
+        writeReports(nextReports);
+        return res.status(201).json({ message: 'Laporan berhasil disimpan.', report: reportToSave });
+    } catch {
+        return res.status(500).json({ error: 'Gagal menyimpan data.' });
+    }
 });
 
 // Mengupdate laporan (Admin Only)
-app.put('/api/reports/:id', requireAdmin, (req, res) => {
+app.put('/api/reports/:id', requireAdmin, requireCsrf, (req, res) => {
     const reportId = req.params.id;
     const updateData = req.body;
 
-    fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-        if (err) return res.status(500).json({ error: 'Gagal membaca data.' });
-
-        let reports = [];
-        try { reports = JSON.parse(data); } catch(e) {}
-        
+    try {
+        const reports = readReports();
         const index = reports.findIndex(r => r.id === reportId);
         if (index === -1) {
             return res.status(404).json({ error: 'Laporan tidak ditemukan.' });
         }
 
         const oldReport = reports[index];
-        const mergedReport = { 
-            ...oldReport, 
-            ...updateData, 
-            id: oldReport.id, 
-            tanggal_input: oldReport.tanggal_input, 
-            tindakan_gambar: oldReport.tindakan_gambar 
-        };
-        reports[index] = mergedReport;
 
-        fs.writeFile(DATA_FILE, JSON.stringify(reports, null, 2), (err) => {
-            if (err) return res.status(500).json({ error: 'Gagal menyimpan data.' });
-            res.json({ message: 'Laporan berhasil diupdate.', report: mergedReport });
-        });
-    });
+        const safeUpdate = {
+            pasien: normalizeTextField(updateData?.pasien, { maxLen: 120 }) ?? oldReport.pasien,
+            nomor_reka_medik: normalizeTextField(updateData?.nomor_reka_medik, { maxLen: 60 }) ?? oldReport.nomor_reka_medik,
+            asisten_perawat: normalizeTextField(updateData?.asisten_perawat, { maxLen: 120 }) ?? oldReport.asisten_perawat,
+            diagnosa: normalizeTextField(updateData?.diagnosa, { maxLen: 160 }) ?? oldReport.diagnosa,
+            nomor_alat: normalizeTextField(updateData?.nomor_alat, { maxLen: 60 }) ?? oldReport.nomor_alat,
+            pemakaian_alat: normalizeTextField(updateData?.pemakaian_alat, { maxLen: 120 }) ?? oldReport.pemakaian_alat,
+        };
+
+        const mergedReport = {
+            ...oldReport,
+            ...safeUpdate,
+            id: oldReport.id,
+            tanggal_input: oldReport.tanggal_input,
+            tindakan_gambar: oldReport.tindakan_gambar
+        };
+
+        const nextReports = reports.map((r, i) => (i === index ? mergedReport : r));
+        writeReports(nextReports);
+        return res.json({ message: 'Laporan berhasil diupdate.', report: mergedReport });
+    } catch {
+        return res.status(500).json({ error: 'Gagal menyimpan data.' });
+    }
 });
 
 // Menghapus laporan (Admin Only)
-app.delete('/api/reports/:id', requireAdmin, (req, res) => {
+app.delete('/api/reports/:id', requireAdmin, requireCsrf, (req, res) => {
     const reportId = req.params.id;
 
-    fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-        if (err) return res.status(500).json({ error: 'Gagal membaca data.' });
-
-        let reports = [];
-        try { reports = JSON.parse(data); } catch (e) {}
+    try {
+        const reports = readReports();
 
         const existing = reports.some(r => r.id === reportId);
         if (!existing) {
@@ -260,21 +311,17 @@ app.delete('/api/reports/:id', requireAdmin, (req, res) => {
         }
 
         const filtered = reports.filter(r => r.id !== reportId);
-
-        fs.writeFile(DATA_FILE, JSON.stringify(filtered, null, 2), (err) => {
-            if (err) return res.status(500).json({ error: 'Gagal menghapus data.' });
-            res.json({ message: 'Laporan berhasil dihapus.' });
-        });
-    });
+        writeReports(filtered);
+        return res.json({ message: 'Laporan berhasil dihapus.' });
+    } catch {
+        return res.status(500).json({ error: 'Gagal menghapus data.' });
+    }
 });
 
 // Export CSV (Admin Only)
-app.get('/api/reports/export.csv', requireAdmin, (req, res) => {
-    fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-        if (err) return res.status(500).json({ error: 'Gagal membaca data.' });
-
-        let reports = [];
-        try { reports = JSON.parse(data); } catch (e) {}
+app.get('/api/reports/export.csv', requireAdmin, requireCsrf, (req, res) => {
+    try {
+        const reports = readReports();
 
         const headers = [
             'id',
@@ -316,7 +363,9 @@ app.get('/api/reports/export.csv', requireAdmin, (req, res) => {
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="Laporan_Trakeostomi_${Date.now()}.csv"`);
         res.send(csv);
-    });
+    } catch {
+        return res.status(500).json({ error: 'Gagal membaca data.' });
+    }
 });
 
 // Handle error upload (multer) - keep at the end so it won't affect other routes

@@ -25,6 +25,26 @@ body {
     line-height: 1.5;
 }
 
+/* Better defaults for form elements */
+input[type="password"],
+select {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+    background: #ffffff;
+}
+
+input[type="password"]:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+}
+
 .app-layout {
     max-width: 1000px;
     margin: 0 auto;
@@ -153,9 +173,15 @@ input[type="text"]:focus {
 
 .form-actions {
     margin-top: 25px;
-    text-align: right;
     padding-top: 15px;
     border-top: 1px solid var(--border-color);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .btn {
@@ -211,6 +237,20 @@ input[type="file"] {
     border: 1px dashed var(--border-color);
     border-radius: 6px;
     background: #ffffff;
+    padding: 10px;
+}
+
+/* File preview grid (public form) */
+#imagePreview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#imagePreview > div {
+    width: 100% !important;
+    height: 90px !important;
 }
 
 .message {
@@ -425,7 +465,7 @@ tbody tr:hover {
     }
 
     .form-actions {
-        text-align: center;
+        justify-content: stretch;
     }
 
     .btn {
@@ -470,6 +510,8 @@ tbody tr:hover {
 .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
 .modal.active { display: flex; }
 .modal-content { background: white; padding: 20px; border-radius: 8px; width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
+
+.modal-content.card { box-shadow: var(--shadow); }
 
 /* Login page layout (moved from inline <style> to support strict CSP) */
 .login-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; }

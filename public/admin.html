@@ -30,6 +30,7 @@
                 </div>
                 <div class="card-body">
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; align-items:end; margin-bottom:15px;">
+                            <a class="btn btn-secondary" href="index.html">Buat Laporan Trakeostomi</a>
                         <div style="min-width: 220px;">
                             <label for="filterInput" style="display:block; font-weight:600; color: var(--text-muted); margin-bottom:6px;">Search</label>
                             <input id="filterInput" type="text" placeholder="Cari cepat..." style="width:100%;" />
@@ -103,7 +104,7 @@
     </div>
 
     <!-- Edit Modal -->
-    <div id="editModal" class="modal">
+    <div id="editModal" class="modal" aria-hidden="true">
         <div class="modal-content card">
             <h3>Edit Laporan</h3>
             <form id="editForm">
@@ -150,6 +151,7 @@
         </div>
     </div>
 
+    <script src="ui.js" defer></script>
     <script src="admin.js" defer></script>
     <script src="admin-page.js" defer></script>
 </body>

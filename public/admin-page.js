@@ -49,6 +49,14 @@
         }
     }
 
+    function getCsrfToken() {
+        try {
+            return window.sessionStorage.getItem('csrfToken') || window.localStorage.getItem('csrfToken') || '';
+        } catch {
+            return '';
+        }
+    }
+
     function renderTable(reports) {
         const tbody = document.getElementById('reportTableBody');
         while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
@@ -223,9 +231,10 @@
         const ok = await window.confirmUi?.('Hapus Laporan', 'Yakin ingin menghapus laporan ini?');
         if (!ok) return;
         try {
+            const csrfToken = getCsrfToken();
             const response = await fetch(`/api/reports/${id}`, {
                 method: 'DELETE',
-                headers: {},
+                headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
             });
 
             if (response.ok) {
@@ -242,8 +251,9 @@
 
     async function exportCsvFromServer() {
         try {
+            const csrfToken = getCsrfToken();
             const response = await fetch('/api/reports/export.csv', {
-                headers: {},
+                headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
             });
 
             if (!response.ok) {
@@ -267,20 +277,40 @@
     const modal = document.getElementById('editModal');
     const imageModal = document.getElementById('imageModal');
     const imageModalImg = document.getElementById('imageModalImg');
+    let lastFocusEl = null;
+
+    function rememberFocus() {
+        lastFocusEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    }
+
+    function restoreFocus() {
+        try {
+            if (lastFocusEl && document.contains(lastFocusEl)) lastFocusEl.focus();
+        } catch {}
+        lastFocusEl = null;
+    }
 
     function openImageModal(url) {
+        rememberFocus();
         imageModalImg.src = url;
         imageModal.classList.add('active');
+        imageModal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => document.getElementById('imageCloseBtn')?.focus(), 0);
     }
 
     function closeImageModal() {
+        // Move focus out before hiding from AT
+        restoreFocus();
         imageModalImg.src = '';
         imageModal.classList.remove('active');
+        imageModal.setAttribute('aria-hidden', 'true');
     }
 
     function openEditModal(id) {
         const report = currentReports.find((r) => String(r.id) === String(id));
         if (!report) return;
+
+        rememberFocus();
 
         document.getElementById('edit_id').value = report.id;
         document.getElementById('edit_pasien').value = report.pasien;
@@ -291,10 +321,14 @@
         document.getElementById('edit_pemakaian_alat').value = report.pemakaian_alat;
 
         modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => document.getElementById('edit_pasien')?.focus(), 0);
     }
 
     function closeEditModal() {
+        restoreFocus();
         modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
     }
 
     document.getElementById('editForm').addEventListener('submit', async (e) => {
@@ -310,10 +344,12 @@
         };
 
         try {
+            const csrfToken = getCsrfToken();
             const response = await fetch(`/api/reports/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
                 },
                 body: JSON.stringify(data),
             });
