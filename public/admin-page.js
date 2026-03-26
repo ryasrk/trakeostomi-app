@@ -391,12 +391,12 @@
 
     loadReports();
 
-    // Auto-refresh (avoid stale/cached UI). Skip while modals are open.
-    const AUTO_REFRESH_MS = 3 * 60 * 1000;
+    // Auto-refresh data (no full page reload). Skip while modals are open.
+    const AUTO_REFRESH_MS = 60 * 1000;
     setInterval(() => {
         const editOpen = modal.classList.contains('active');
         const imageOpen = imageModal.classList.contains('active');
         if (editOpen || imageOpen) return;
-        window.location.reload();
+        loadReports();
     }, AUTO_REFRESH_MS);
 })();
