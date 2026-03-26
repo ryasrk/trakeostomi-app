@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Laporan Trakeostomi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <header class="app-header">
+            <div class="header-content">
+                <i class="fa-solid fa-user-shield header-icon"></i>
+                <h1>Admin Dashboard</h1>
+                <div>
+                    <button id="exportCsvBtn" type="button" class="btn btn-secondary" style="margin-right: 10px;">
+                        <i class="fa-solid fa-file-export"></i> Export CSV
+                    </button>
+                    <button id="logoutBtn" class="btn btn-primary" style="background-color: var(--error-color);">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <section class="card table-section">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-list-check"></i> Riwayat Laporan</h2>
+                </div>
+                <div class="card-body">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; align-items:end; margin-bottom:15px;">
+                        <div style="min-width: 220px;">
+                            <label for="filterInput" style="display:block; font-weight:600; color: var(--text-muted); margin-bottom:6px;">Search</label>
+                            <input id="filterInput" type="text" placeholder="Cari cepat..." style="width:100%;" />
+                        </div>
+                        <div style="min-width: 220px;">
+                            <label for="filterField" style="display:block; font-weight:600; color: var(--text-muted); margin-bottom:6px;">Kolom</label>
+                            <select id="filterField" style="width:100%; padding:10px 15px; border:1px solid var(--border-color); border-radius:6px; font-family: inherit;">
+                                <option value="all">Semua</option>
+                                <option value="nomor_reka_medik">No RM</option>
+                                <option value="pasien">Pasien</option>
+                                <option value="asisten_perawat">Petugas</option>
+                                <option value="diagnosa">Diagnosa</option>
+                                <option value="nomor_alat">No Alat</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:1; min-width: 140px;">
+                                <label for="dateFrom" style="display:block; font-weight:600; color: var(--text-muted); margin-bottom:6px;">Dari</label>
+                                <input id="dateFrom" type="date" style="width:100%;" />
+                            </div>
+                            <div style="flex:1; min-width: 140px;">
+                                <label for="dateTo" style="display:block; font-weight:600; color: var(--text-muted); margin-bottom:6px;">Sampai</label>
+                                <input id="dateTo" type="date" style="width:100%;" />
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span style="color: var(--text-muted); font-weight:600;">Pagination</span>
+                            <select id="pageSize" style="padding:8px 10px; border:1px solid var(--border-color); border-radius:6px;">
+                                <option value="10">10 / halaman</option>
+                                <option value="25">25 / halaman</option>
+                                <option value="50">50 / halaman</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <button id="prevPageBtn" type="button" class="btn btn-secondary"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+                            <span id="pageInfo" style="color: var(--text-muted); font-weight:600;">Halaman 1</span>
+                            <button id="nextPageBtn" type="button" class="btn btn-secondary">Next <i class="fa-solid fa-chevron-right"></i></button>
+                            <button id="resetBtn" type="button" class="btn btn-secondary">
+                                <i class="fa-solid fa-eraser"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Waktu Input</th>
+                                    <th>No RM</th>
+                                    <th>Pasien</th>
+                                    <th>Petugas</th>
+                                    <th>Diagnosa</th>
+                                    <th>No Alat</th>
+                                    <th>Gambar Tindakan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading-state">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Memuat data...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content card">
+            <h3>Edit Laporan</h3>
+            <form id="editForm">
+                <input type="hidden" id="edit_id">
+                <div class="form-group"><label>Nama Pasien</label><input type="text" id="edit_pasien" required></div>
+                <div class="form-group"><label>No Rekam Medik</label><input type="text" id="edit_nomor_reka_medik" required></div>
+                <div class="form-group"><label>Asisten Perawat</label><input type="text" id="edit_asisten_perawat" required></div>
+                <div class="form-group"><label>Diagnosa</label><input type="text" id="edit_diagnosa" required></div>
+                <div class="form-group"><label>No Alat</label><input type="text" id="edit_nomor_alat" required></div>
+                <div class="form-group"><label>Pemakaian Alat</label><input type="text" id="edit_pemakaian_alat" required></div>
+                <div class="form-actions" style="margin-top:20px;">
+                    <button id="editCancelBtn" type="button" class="btn btn-secondary">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="imageModal" class="modal" aria-hidden="true">
+        <div class="modal-content card" style="width: 720px; max-width: 95%;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+                <h3 style="margin:0;">Preview Gambar</h3>
+                <button id="imageCloseBtn" type="button" class="btn btn-secondary">Tutup</button>
+            </div>
+            <div style="display:flex; justify-content:center;">
+                <img id="imageModalImg" src="" alt="Preview" style="max-width:100%; max-height:70vh; border-radius:8px; border:1px solid var(--border-color); background:#fff;" />
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="message toast hidden" role="status" aria-live="polite"></div>
+
+    <div id="confirmDialog" class="dialog-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="dialog">
+            <div class="dialog-header" id="confirmTitle">Konfirmasi</div>
+            <div class="dialog-body">
+                <div id="confirmText" style="color: var(--text-main);"></div>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" id="confirmCancel" class="btn btn-secondary">Batal</button>
+                <button type="button" id="confirmOk" class="btn btn-primary" style="background-color: var(--error-color);">Ya</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js" defer></script>
+    <script src="admin-page.js" defer></script>
+</body>
+</html>

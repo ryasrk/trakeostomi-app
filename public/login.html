@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin - Sistem Laporan Trakeostomi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-wrapper">
+    <div class="card login-card">
+        <div class="login-header">
+            <i class="fa-solid fa-user-shield"></i>
+            <h2>Portal Admin</h2>
+        </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username"><i class="fa-solid fa-user"></i> Username</label>
+                <input type="text" id="username" name="username" placeholder="Masukkan username admin" required>
+            </div>
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="password"><i class="fa-solid fa-lock"></i> Password</label>
+                <input type="password" id="password" name="password" placeholder="Masukkan password" required style="width: 100%; padding: 10px 15px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; transition: all 0.2s; font-family: inherit;">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 25px;">
+                <i class="fa-solid fa-right-to-bracket"></i> Login Masuk
+            </button>
+        </form>
+        <div id="loginMessage" class="message hidden" style="margin-top: 15px;"></div>
+    </div>
+
+    <div id="toast" class="message toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="login.js" defer></script>
+</body>
+</html>

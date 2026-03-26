@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Laporan Trakeostomi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <header class="app-header">
+            <div class="header-content">
+                <i class="fa-solid fa-notes-medical header-icon"></i>
+                <h1>Input Laporan Trakeostomi</h1>
+                <div id="headerActions" style="position: absolute; right: 20px; top: 20px; display:flex; gap:10px;">
+                    <a id="adminLoginLink" href="/login.html" class="btn btn-primary">
+                        <i class="fa-solid fa-lock"></i> Admin Login
+                    </a>
+                    <a id="adminDashboardLink" href="/admin.html" class="btn btn-secondary hidden">
+                        <i class="fa-solid fa-table-list"></i> Dashboard
+                    </a>
+                    <button id="adminLogoutBtn" type="button" class="btn btn-primary hidden" style="background-color: var(--error-color);">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
+                </div>
+            </div>
+            <p>Pencatatan medis elektronik untuk pemantauan perawatan pasien.</p>
+        </header>
+
+        <main class="app-main">
+            <section class="card form-section" style="max-width: 800px; margin: 0 auto;">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-pen-to-square"></i> Entri Laporan Baru</h2>
+                </div>
+                <div class="card-body">
+                    <form id="trakeostomiForm" enctype="multipart/form-data">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="pasien"><i class="fa-solid fa-user-injured"></i> Nama Pasien</label>
+                                <input type="text" id="pasien" name="pasien" placeholder="Masukkan nama lengkap pasien" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="nomor_reka_medik"><i class="fa-solid fa-address-card"></i> Nomor Rekam Medik</label>
+                                <input type="text" id="nomor_reka_medik" name="nomor_reka_medik" placeholder="Cth: RM-123456" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="asisten_perawat"><i class="fa-solid fa-user-nurse"></i> Asisten Perawat</label>
+                                <input type="text" id="asisten_perawat" name="asisten_perawat" placeholder="Nama perawat bertugas" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="diagnosa"><i class="fa-solid fa-stethoscope"></i> Diagnosa</label>
+                                <input type="text" id="diagnosa" name="diagnosa" placeholder="Diagnosa utama" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="nomor_alat"><i class="fa-solid fa-pump-medical"></i> Nomor Alat Trakeostomi</label>
+                                <input type="text" id="nomor_alat" name="nomor_alat" placeholder="Cth: TRX-992" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="pemakaian_alat"><i class="fa-solid fa-clock"></i> Keterangan Pemakaian</label>
+                                <input type="text" id="pemakaian_alat" name="pemakaian_alat" placeholder="Durasi/Kondisi Alat" required>
+                            </div>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label for="tindakan_gambar"><i class="fa-solid fa-images"></i> Tindakan (Upload Gambar Multiple)</label>
+                                <input type="file" id="tindakan_gambar" name="tindakan_gambar" accept="image/jpeg,image/png,image/webp" multiple>
+                                <small style="color:#666; display:block; margin-top:5px;">Maks 10 gambar. Tipe: JPG/PNG/WEBP. Maks 5MB per file.</small>
+                                <div id="imagePreview" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;"></div>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">
+                                <i class="fa-solid fa-floppy-disk"></i> Simpan Laporan
+                            </button>
+                        </div>
+                    </form>
+                    <div id="message" class="message hidden"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="toast" class="message toast hidden" role="status" aria-live="polite"></div>
+
+    <div id="senderDialog" class="dialog-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="dialog">
+            <div class="dialog-header">Nama Pengirim Laporan</div>
+            <div class="dialog-body">
+                <label for="senderNameInput" style="display:block; font-weight:600; margin-bottom:8px;">Masukkan nama pengirim</label>
+                <input id="senderNameInput" type="text" placeholder="Contoh: Siti / Budi" maxlength="60" />
+                <div class="field-hint">Wajib diisi sebelum simpan laporan.</div>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" id="senderCancel" class="btn btn-secondary">Batal</button>
+                <button type="button" id="senderOk" class="btn btn-primary">Lanjut Simpan</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="index.js" defer></script>
+</body>
+</html>
