@@ -4,40 +4,103 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Laporan Trakeostomi</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <i class="fa-solid fa-moon" id="themeIcon"></i>
+    </button>
+
     <div class="app-layout">
         <header class="app-header">
-            <div class="header-content">
+            <div class="header-title-row">
                 <i class="fa-solid fa-user-shield header-icon"></i>
                 <h1>Admin Dashboard</h1>
-                <div>
-                    <button id="exportCsvBtn" type="button" class="btn btn-secondary" style="margin-right: 10px;">
-                        <i class="fa-solid fa-file-export"></i> Export CSV
-                    </button>
-                    <button id="logoutBtn" class="btn btn-primary" style="background-color: var(--error-color);">
-                        <i class="fa-solid fa-right-from-bracket"></i> Logout
-                    </button>
-                </div>
+            </div>
+            <div class="header-actions-row">
+                <button id="exportCsvBtn" type="button" class="btn btn-secondary">
+                    <i class="fa-solid fa-file-export"></i> Export CSV
+                </button>
+                <button id="printAllBtn" type="button" class="btn btn-secondary">
+                    <i class="fa-solid fa-print"></i> Print
+                </button>
+                <button id="logoutBtn" class="btn btn-danger">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
             </div>
         </header>
 
         <main class="app-main">
+            <!-- Analytics Cards -->
+            <section class="card mb-20">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-chart-simple"></i> Ringkasan</h2>
+                </div>
+                <div class="card-body">
+                    <div id="statsContainer" class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fa-solid fa-file-medical"></i></div>
+                            <div class="stat-value" id="statTotal">—</div>
+                            <div class="stat-label">Total Laporan</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon icon-success"><i class="fa-solid fa-calendar-day"></i></div>
+                            <div class="stat-value" id="statToday">—</div>
+                            <div class="stat-label">Hari Ini</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon icon-purple"><i class="fa-solid fa-calendar"></i></div>
+                            <div class="stat-value" id="statMonth">—</div>
+                            <div class="stat-label">Bulan Ini</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon icon-amber"><i class="fa-solid fa-stethoscope"></i></div>
+                            <div class="stat-value" id="statTopDiag">—</div>
+                            <div class="stat-label">Diagnosa Teratas</div>
+                        </div>
+                    </div>
+                    <!-- Charts -->
+                    <div class="charts-grid mt-20" id="chartsSection">
+                        <div class="chart-container">
+                            <div class="chart-title"><i class="fa-solid fa-chart-bar icon-mr-6"></i>Top 5 Diagnosa</div>
+                            <div class="bar-chart" id="diagChart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-title"><i class="fa-solid fa-chart-line icon-mr-6"></i>Tren 6 Bulan Terakhir</div>
+                            <div class="trend-chart" id="trendChart"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="card table-section">
                 <div class="card-header">
                     <h2><i class="fa-solid fa-list-check"></i> Riwayat Laporan</h2>
                 </div>
                 <div class="card-body">
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; align-items:end; margin-bottom:15px;">
-                            <a class="btn btn-secondary" href="index.html">Buat Laporan Trakeostomi</a>
-                        <div style="min-width: 220px;">
-                            <label for="filterInput" style="display:block; font-weight:600; color: var(--text-muted); margin-bottom:6px;">Search</label>
-                            <input id="filterInput" type="text" placeholder="Cari cepat..." style="width:100%;" />
+                    <!-- Bulk action bar -->
+                    <div class="bulk-bar" id="bulkBar">
+                        <span class="bulk-count" id="bulkCount">0 dipilih</span>
+                        <button type="button" class="btn btn-secondary btn-compact" id="bulkExportBtn">
+                            <i class="fa-solid fa-file-export"></i> Export Terpilih
+                        </button>
+                        <button type="button" class="btn btn-danger btn-compact" id="bulkDeleteBtn">
+                            <i class="fa-solid fa-trash"></i> Hapus Terpilih
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-compact" id="bulkClearBtn">
+                            <i class="fa-solid fa-xmark"></i> Batal
+                        </button>
+                    </div>
+                    <div class="filter-grid-3col">
+                            <a class="btn btn-secondary" href="index.html"><i class="fa-solid fa-plus"></i> Buat Laporan Baru</a>
+                        <div class="min-w-220">
+                            <label for="filterInput" class="form-label-muted">Search</label>
+                            <input id="filterInput" type="text" placeholder="Cari cepat..." class="full-width" />
                         </div>
-                        <div style="min-width: 220px;">
-                            <label for="filterField" style="display:block; font-weight:600; color: var(--text-muted); margin-bottom:6px;">Kolom</label>
-                            <select id="filterField" style="width:100%; padding:10px 15px; border:1px solid var(--border-color); border-radius:6px; font-family: inherit;">
+                        <div class="min-w-220">
+                            <label for="filterField" class="form-label-muted">Kolom</label>
+                            <select id="filterField" class="select-styled">
                                 <option value="all">Semua</option>
                                 <option value="nomor_reka_medik">No RM</option>
                                 <option value="pasien">Pasien</option>
@@ -46,54 +109,65 @@
                                 <option value="nomor_alat">No Alat</option>
                             </select>
                         </div>
-                        <div style="display:flex; gap:10px;">
-                            <div style="flex:1; min-width: 140px;">
-                                <label for="dateFrom" style="display:block; font-weight:600; color: var(--text-muted); margin-bottom:6px;">Dari</label>
-                                <input id="dateFrom" type="date" style="width:100%;" />
+                        <div class="flex-date-range">
+                            <div class="flex-1-min-140">
+                                <label for="dateFrom" class="form-label-muted">Dari</label>
+                                <input id="dateFrom" type="date" class="full-width" />
                             </div>
-                            <div style="flex:1; min-width: 140px;">
-                                <label for="dateTo" style="display:block; font-weight:600; color: var(--text-muted); margin-bottom:6px;">Sampai</label>
-                                <input id="dateTo" type="date" style="width:100%;" />
+                            <div class="flex-1-min-140">
+                                <label for="dateTo" class="form-label-muted">Sampai</label>
+                                <input id="dateTo" type="date" class="full-width" />
                             </div>
                         </div>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <span style="color: var(--text-muted); font-weight:600;">Pagination</span>
-                            <select id="pageSize" style="padding:8px 10px; border:1px solid var(--border-color); border-radius:6px;">
+                    <div class="flex-between-wrap">
+                        <div class="flex-gap-10">
+                            <span class="text-muted-bold">Pagination</span>
+                            <select id="pageSize" class="select-compact">
                                 <option value="10">10 / halaman</option>
                                 <option value="25">25 / halaman</option>
                                 <option value="50">50 / halaman</option>
                             </select>
                         </div>
-                        <div style="display:flex; gap:10px; align-items:center;">
+                        <div class="flex-gap-10">
                             <button id="prevPageBtn" type="button" class="btn btn-secondary"><i class="fa-solid fa-chevron-left"></i> Prev</button>
-                            <span id="pageInfo" style="color: var(--text-muted); font-weight:600;">Halaman 1</span>
+                            <span id="pageInfo" class="text-muted-bold">Halaman 1</span>
                             <button id="nextPageBtn" type="button" class="btn btn-secondary">Next <i class="fa-solid fa-chevron-right"></i></button>
                             <button id="resetBtn" type="button" class="btn btn-secondary">
                                 <i class="fa-solid fa-eraser"></i> Reset
                             </button>
                         </div>
                     </div>
-                    <div class="table-container">
+                    <div class="table-container" id="tableContainer">
+                        <div id="tableLoadingOverlay" class="table-loading-overlay initially-hidden">
+                            <div class="loading-spinner"></div>
+                            <span>Memuat data...</span>
+                        </div>
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Waktu Input</th>
-                                    <th>No RM</th>
-                                    <th>Pasien</th>
-                                    <th>Petugas</th>
-                                    <th>Diagnosa</th>
+                                    <th class="col-checkbox"><input type="checkbox" id="selectAllChk" title="Pilih semua" aria-label="Pilih semua laporan" class="checkbox-styled"></th>
+                                    <th class="sortable" data-sort="tanggal_input">Waktu Input <i class="fa-solid fa-sort"></i></th>
+                                    <th class="sortable" data-sort="nomor_reka_medik">No RM <i class="fa-solid fa-sort"></i></th>
+                                    <th class="sortable" data-sort="pasien">Pasien <i class="fa-solid fa-sort"></i></th>
+                                    <th class="sortable" data-sort="asisten_perawat">Petugas <i class="fa-solid fa-sort"></i></th>
+                                    <th class="sortable" data-sort="diagnosa">Diagnosa <i class="fa-solid fa-sort"></i></th>
                                     <th>No Alat</th>
-                                    <th>Gambar Tindakan</th>
-                                    <th>Aksi</th>
+                                    <th>Gambar</th>
+                                    <th class="col-actions">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="reportTableBody">
-                                <tr>
-                                    <td colspan="8" class="loading-state">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Memuat data...
-                                    </td>
+                                <tr class="skeleton-row">
+                                    <td><div class="skeleton skeleton-checkbox"></div></td>
+                                    <td><div class="skeleton skeleton-wide"></div></td>
+                                    <td><div class="skeleton skeleton-md"></div></td>
+                                    <td><div class="skeleton skeleton-lg"></div></td>
+                                    <td><div class="skeleton skeleton-md-lg"></div></td>
+                                    <td><div class="skeleton skeleton-wide-md"></div></td>
+                                    <td><div class="skeleton skeleton-sm"></div></td>
+                                    <td><div class="skeleton skeleton-xs"></div></td>
+                                    <td><div class="skeleton skeleton-btn"></div></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -104,18 +178,42 @@
     </div>
 
     <!-- Edit Modal -->
-    <div id="editModal" class="modal" aria-hidden="true">
+    <div id="editModal" class="modal" role="dialog" aria-hidden="true" aria-labelledby="editModalTitle">
         <div class="modal-content card">
-            <h3>Edit Laporan</h3>
+            <h3 id="editModalTitle">Edit Laporan</h3>
             <form id="editForm">
                 <input type="hidden" id="edit_id">
-                <div class="form-group"><label>Nama Pasien</label><input type="text" id="edit_pasien" required></div>
-                <div class="form-group"><label>No Rekam Medik</label><input type="text" id="edit_nomor_reka_medik" required></div>
-                <div class="form-group"><label>Asisten Perawat</label><input type="text" id="edit_asisten_perawat" required></div>
-                <div class="form-group"><label>Diagnosa</label><input type="text" id="edit_diagnosa" required></div>
-                <div class="form-group"><label>No Alat</label><input type="text" id="edit_nomor_alat" required></div>
-                <div class="form-group"><label>Pemakaian Alat</label><input type="text" id="edit_pemakaian_alat" required></div>
-                <div class="form-actions" style="margin-top:20px;">
+                <div class="form-group">
+                    <label for="edit_pasien">Nama Pasien</label>
+                    <input type="text" id="edit_pasien" required maxlength="120">
+                    <div class="char-counter" id="counter_edit_pasien">0 / 120</div>
+                </div>
+                <div class="form-group">
+                    <label for="edit_nomor_reka_medik">No Rekam Medik</label>
+                    <input type="text" id="edit_nomor_reka_medik" required maxlength="60">
+                    <div class="char-counter" id="counter_edit_nomor_reka_medik">0 / 60</div>
+                </div>
+                <div class="form-group">
+                    <label for="edit_asisten_perawat">Asisten Perawat</label>
+                    <input type="text" id="edit_asisten_perawat" required maxlength="120">
+                    <div class="char-counter" id="counter_edit_asisten_perawat">0 / 120</div>
+                </div>
+                <div class="form-group">
+                    <label for="edit_diagnosa">Diagnosa</label>
+                    <input type="text" id="edit_diagnosa" required maxlength="160">
+                    <div class="char-counter" id="counter_edit_diagnosa">0 / 160</div>
+                </div>
+                <div class="form-group">
+                    <label for="edit_nomor_alat">No Alat</label>
+                    <input type="text" id="edit_nomor_alat" required maxlength="60">
+                    <div class="char-counter" id="counter_edit_nomor_alat">0 / 60</div>
+                </div>
+                <div class="form-group">
+                    <label for="edit_pemakaian_alat">Pemakaian Alat</label>
+                    <input type="text" id="edit_pemakaian_alat" required maxlength="120">
+                    <div class="char-counter" id="counter_edit_pemakaian_alat">0 / 120</div>
+                </div>
+                <div class="form-actions form-actions-mt">
                     <button id="editCancelBtn" type="button" class="btn btn-secondary">Batal</button>
                     <button type="submit" class="btn btn-primary">Simpan</button>
                 </div>
@@ -123,15 +221,27 @@
         </div>
     </div>
 
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal" role="dialog" aria-hidden="true" aria-labelledby="detailModalTitle">
+        <div class="modal-content card modal-wide">
+            <div class="flex-header-modal">
+                <h3 id="detailModalTitle" class="heading-no-margin"><i class="fa-solid fa-file-medical"></i> Detail Laporan</h3>
+                <button id="detailCloseBtn" type="button" class="btn btn-secondary">Tutup</button>
+            </div>
+            <div id="detailBody" class="grid-2col"></div>
+            <div id="detailImages" class="mt-15"></div>
+        </div>
+    </div>
+
     <!-- Image Preview Modal -->
-    <div id="imageModal" class="modal" aria-hidden="true">
-        <div class="modal-content card" style="width: 720px; max-width: 95%;">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
-                <h3 style="margin:0;">Preview Gambar</h3>
+    <div id="imageModal" class="modal" role="dialog" aria-hidden="true" aria-labelledby="imageModalTitle">
+        <div class="modal-content card modal-wider">
+            <div class="flex-header-modal-tight">
+                <h3 id="imageModalTitle" class="heading-no-margin">Preview Gambar</h3>
                 <button id="imageCloseBtn" type="button" class="btn btn-secondary">Tutup</button>
             </div>
-            <div style="display:flex; justify-content:center;">
-                <img id="imageModalImg" src="" alt="Preview" style="max-width:100%; max-height:70vh; border-radius:8px; border:1px solid var(--border-color); background:#fff;" />
+            <div class="flex-center">
+                <img id="imageModalImg" src="" alt="Preview" class="image-preview-modal" />
             </div>
         </div>
     </div>
@@ -142,11 +252,11 @@
         <div class="dialog">
             <div class="dialog-header" id="confirmTitle">Konfirmasi</div>
             <div class="dialog-body">
-                <div id="confirmText" style="color: var(--text-main);"></div>
+                <div id="confirmText" class="text-main-color"></div>
             </div>
             <div class="dialog-footer">
                 <button type="button" id="confirmCancel" class="btn btn-secondary">Batal</button>
-                <button type="button" id="confirmOk" class="btn btn-primary" style="background-color: var(--error-color);">Ya</button>
+                <button type="button" id="confirmOk" class="btn btn-primary btn-confirm-danger">Ya</button>
             </div>
         </div>
     </div>

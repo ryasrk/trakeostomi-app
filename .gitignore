@@ -9,8 +9,14 @@ pnpm-debug.log*
 
 # Runtime data (local storage)
 data.json
+*.db
+*.db-wal
+*.db-shm
 
 # Uploaded files (may contain sensitive images)
 public/uploads/
 yarn-debug.log*
 yarn-error.log*
+
+# Test coverage
+coverage/
